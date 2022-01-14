@@ -37,24 +37,34 @@ class Player_right(pygame.sprite.Sprite):
         self.surf.fill((255, 255, 255))
         self.rect = self.surf.get_rect(center = (790,300))
 
-    def update(self, pressed_keys):
-        if pressed_keys[K_UP]:
-            self.rect.move_ip(0, -5)
-
-        if pressed_keys[K_DOWN]:
-            self.rect.move_ip(0, 5)
-
-        if self.rect.left < 0:
-            self.rect.left = 0
-
-        if self.rect.right > SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH
-
-        if self.rect.top <= 0:
+    def move_up(self):
+        self.rect.move_ip(0, -5)
+         if self.rect.top <= 0:
             self.rect.top = 0
 
+    def move_down(self):
+        self.rect.move_ip(0, -5)
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
+
+    # def update(self, pressed_keys):
+    #     if pressed_keys[K_UP]:
+    #         self.rect.move_ip(0, -5)
+
+    #     if pressed_keys[K_DOWN]:
+    #         self.rect.move_ip(0, 5)
+
+    #     # # if self.rect.left < 0:
+    #     # #     self.rect.left = 0
+
+    #     # # if self.rect.right > SCREEN_WIDTH:
+    #     # #     self.rect.right = SCREEN_WIDTH
+
+    #     # if self.rect.top <= 0:
+    #     #     self.rect.top = 0
+
+    #     # if self.rect.bottom >= SCREEN_HEIGHT:
+    #     #     self.rect.bottom = SCREEN_HEIGHT
 
     def collision(self,circle_x,circle_y):
 
@@ -100,10 +110,7 @@ pygame.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Instantiate player. Right now, this is just a rectangle.
-player_right = Player_right()
 Wall_left = Wall_left()
-Wall_left_score = 0
-player_right_score = 0
 circle_x = 400
 circle_y = 300
 ranges = [(1/24,1/12), (5/12,7/12), (11/12,23/24)]
@@ -130,8 +137,7 @@ right_through = True
 left_through = True
 
 # Main loop
-while running:
-
+def eval_genomes(genomes, config):
     # for loop through the event queue
     for event in pygame.event.get():
         # Check for KEYDOWN event
@@ -143,10 +149,22 @@ while running:
             elif event.type == QUIT:
                 running = False
 
+    nets =[]
+    players_right = []
+    ge = []
+
+    for genome_id, genome in genomes:
+        genome.fitness = 0
+        net = neat.nn.FeedForwardNetwork.create(genome)
+        nets.append(net)
+        players_right.append(Player_right())
+        ge.append(genome)
+
     # Draw the player on the screen
-    screen.blit(player_right.surf, player_right.rect)
     screen.blit(Wall_left.surf, Wall_left.rect)
     pygame.draw.circle(screen, (255,255,255), (circle_x,circle_y), 10)
+    for i in players_right:
+        screen.blit(i.surf, i.rect)
 
     pressed_keys = pygame.key.get_pressed()
     circle_x += ball_x_direction_original
