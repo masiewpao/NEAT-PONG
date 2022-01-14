@@ -30,6 +30,7 @@ SCREEN_HEIGHT = 600
 # Define a player object by extending pygame.sprite.Sprite
 # The surface drawn on the screen is now an attribute of 'player'
 class Player_right(pygame.sprite.Sprite):
+
     def __init__(self):
         super(Player_right, self).__init__()
         self.surf = pygame.Surface((20,100))
@@ -55,10 +56,19 @@ class Player_right(pygame.sprite.Sprite):
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
 
-class Player_left(pygame.sprite.Sprite):
+    def collision(self,circle_x,circle_y):
+
+        if circle_y - 10 <= player_right.rect.bottom and circle_y + 10 >= player_right.rect.top:
+            if circle_x + 10 >= 780:
+                return True
+
+
+
+class Wall_left(pygame.sprite.Sprite):
+
     def __init__(self):
-        super(Player_left, self).__init__()
-        self.surf = pygame.Surface((20,100))
+        super(Wall_left, self).__init__()
+        self.surf = pygame.Surface((20,600))
         self.surf.fill((255, 255, 255))
         self.rect = self.surf.get_rect(center = (10,300))
 
@@ -78,9 +88,9 @@ class Player_left(pygame.sprite.Sprite):
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
 
-#player_size = input('Enter sprite size:')
-#player_size = tuple((int(i) for i in player_size.split()))
-
+    def collision(self,circle_x,circle_y):
+        if circle_x - 10 <= 20:
+            return True
 
 # Initialize pygame
 pygame.init()
@@ -91,8 +101,8 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # Instantiate player. Right now, this is just a rectangle.
 player_right = Player_right()
-player_left = Player_left()
-player_left_score = 0
+Wall_left = Wall_left()
+Wall_left_score = 0
 player_right_score = 0
 circle_x = 400
 circle_y = 300
@@ -135,7 +145,7 @@ while running:
 
     # Draw the player on the screen
     screen.blit(player_right.surf, player_right.rect)
-    screen.blit(player_left.surf, player_left.rect)
+    screen.blit(Wall_left.surf, Wall_left.rect)
     pygame.draw.circle(screen, (255,255,255), (circle_x,circle_y), 10)
 
     pressed_keys = pygame.key.get_pressed()
@@ -156,7 +166,7 @@ while running:
 
 
     #Make the ball bounce off the left player when appropriate and adjust the score
-    if (circle_x - 10 <= 20 and player_left.rect.top > circle_y + 10) or (circle_x - 10 <= 20 and player_left.rect.bottom < circle_y - 10):
+    if (circle_x - 10 <= 20 and Wall_left.rect.top > circle_y + 10) or (circle_x - 10 <= 20 and Wall_left.rect.bottom < circle_y - 10):
         player_right_score += 1
         print('P2 score is: ' + str(player_right_score))
         circle_x = 400
@@ -179,14 +189,14 @@ while running:
         else:
             ball_y_direction_original = math.floor(ball_y_direction_original)
 
-    elif circle_y - 10 <= player_left.rect.bottom and circle_y + 10 >= player_left.rect.top:
-        if circle_x - 10 <= 20:
-            ball_x_direction_original = -1.04*ball_x_direction_original
+    elif Wall_left.collision(circle_x,circle_y):
+        ball_x_direction_original = -1.04*ball_x_direction_original
+
 
     #Make the ball bounce off the right player when appropriate and adjust the score
     if (circle_x + 10 >= 780 and player_right.rect.top > circle_y + 10) or (circle_x + 10 >= 780 and player_right.rect.bottom < circle_y - 10):
-        player_left_score += 1
-        print('P1 score is: ' + str(player_left_score))
+        Wall_left_score += 1
+        print('P1 score is: ' + str(Wall_left_score))
         circle_x = 400
         circle_y = 300
 
@@ -208,13 +218,12 @@ while running:
             ball_y_direction_original = math.floor(ball_y_direction_original)
 
 
-    elif circle_y - 10 <= player_right.rect.bottom and circle_y + 10 >= player_right.rect.top:
-        if circle_x + 10 >= 780:
-            ball_x_direction_original = -1.04*ball_x_direction_original
+    elif player_right.collision(circle_x,circle_y):
+        ball_x_direction_original = -1.04*ball_x_direction_original
 
 
     player_right.update(pressed_keys)
-    player_left.update(pressed_keys)
+    Wall_left.update(pressed_keys)
     pygame.display.flip()
 
     # Fill the screen with black
