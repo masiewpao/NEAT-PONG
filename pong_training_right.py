@@ -42,12 +42,12 @@ class Player_right(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect(center = (790,300))
 
     def move_up(self):
-        self.rect.move_ip(0, -5)
+        self.rect.move_ip(0, -10)
         if self.rect.top <= 0:
             self.rect.top = 0
 
     def move_down(self):
-        self.rect.move_ip(0, -5)
+        self.rect.move_ip(0, 10)
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
 
@@ -85,7 +85,8 @@ class Wall_left(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect(center = (10,300))
 
     def collision(self,circle_x,circle_y):
-        if circle_x - 10 <= 20:
+        if circle_x - 10 < 20:
+            circle_x = 20
             return True
 
 def draw_window(screen, players, circle_x, circle_y, wall):
@@ -96,56 +97,48 @@ def draw_window(screen, players, circle_x, circle_y, wall):
     screen.blit(wall.surf, wall.rect)
 
     pygame.draw.circle(screen, (255,255,255), (circle_x,circle_y), 10)
-    
 
     pygame.display.flip()
 
 # Initialize pygame
-pygame.init()
+
 
 # Create the screen object
 # The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-# Instantiate player. Right now, this is just a rectangle.
-Wall_left = Wall_left()
-circle_x = 400
-circle_y = 300
-
-#Implement the random direction the ball will travel in
-ranges = [(1/24,1/12), (5/12,7/12), (11/12,23/24)]
-random_int = random.randrange(3)
-r = random.uniform(*ranges[random_int])
-ball_angle = np.pi * 2 * r
-ball_x_direction_original = 8 * np.cos(ball_angle)
-ball_y_direction_original = 8 * np.sin(ball_angle)
-
-if np.sign(ball_x_direction_original) >= 0:
-    ball_x_direction_original = math.ceil(ball_x_direction_original)
-else:
-    ball_x_direction_original = math.floor(ball_x_direction_original)
-
-if np.sign(ball_y_direction_original) >= 0:
-    ball_y_direction_original = math.ceil(ball_y_direction_original)
-else:
-    ball_y_direction_original = math.floor(ball_y_direction_original)
 
 # Variable to keep the main loop running
-running = True
+
 
 # Main loop
 def eval_genomes(genomes, config):
-    global circle_x, circle_y, ball_y_direction_original, ball_x_direction_original, running
-    # for loop through the event queue
-    for event in pygame.event.get():
-        # Check for KEYDOWN event
-        if event.type == KEYDOWN:
-            # If the Esc key is pressed, then exit the main loop
-            if event.key == K_ESCAPE:
-               running = False
-            # Check for QUIT event. If QUIT, then set running to false.
-            elif event.type == QUIT:
-                running = False
+    global circle_x, circle_y, ball_y_direction_original, ball_x_direction_original, running, wall_left
+    pygame.init()
+    running = True
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+    # Instantiate player. Right now, this is just a rectangle.
+    wall_left = Wall_left()
+    circle_x = 400
+    circle_y = 300
+
+    #Implement the random direction the ball will travel in
+    ranges = [(1/24,1/12), (5/12,7/12), (11/12,23/24)]
+    random_int = random.randrange(3)
+    r = random.uniform(*ranges[random_int])
+    ball_angle = np.pi * 2 * r
+    ball_x_direction_original = 8 * np.cos(ball_angle)
+    ball_y_direction_original = 8 * np.sin(ball_angle)
+    print(ball_x_direction_original)
+
+    if np.sign(ball_x_direction_original) >= 0:
+        ball_x_direction_original = math.ceil(ball_x_direction_original)
+    else:
+        ball_x_direction_original = math.floor(ball_x_direction_original)
+
+    if np.sign(ball_y_direction_original) >= 0:
+        ball_y_direction_original = math.ceil(ball_y_direction_original)
+    else:
+        ball_y_direction_original = math.floor(ball_y_direction_original)
 
     nets =[]
     players_right = []
@@ -158,73 +151,83 @@ def eval_genomes(genomes, config):
         players_right.append(Player_right())
         ge.append(genome)
 
-    clock = pygame.time.Clock()
-
     circle_x += ball_x_direction_original
     circle_y += ball_y_direction_original
     circle_x = int(circle_x)
     circle_y = int(circle_y)
-
-    draw_window(screen, players_right, circle_x, circle_y, Wall_left)
-
-    #Make the ball bounce off the top of the screen
-    if circle_y - 10 < 0:
-        circle_y = 10
-        ball_y_direction_original = -ball_y_direction_original
-
-
-    #Make the ball bounce off the top of the screen
-    if circle_y + 10 >= 600:
-        ball_y_direction_original = -ball_y_direction_original
-
-
+    players_right[0].move_up
+    #clock = pygame.time.Clock()
+    draw_window(screen, players_right, circle_x, circle_y, wall_left)
     #Make the ball bounce off the left player when appropriate and adjust the score
     while running and len(players_right) > 0:
-        clock.tick(10)
+        #clock.tick(40)
+
+        for event in pygame.event.get():
+            # Check for KEYDOWN event
+            if event.type == KEYDOWN:
+                # If the Esc key is pressed, then exit the main loop
+                if event.key == K_ESCAPE:
+                   running = False
+                # Check for QUIT event. If QUIT, then set running to false.
+                elif event.type == QUIT:
+                    running = False
+
+        #MBounce off the top
+        if circle_y - 10 < 0:
+            circle_y = 10
+            ball_y_direction_original = -ball_y_direction_original
+
+        if circle_y + 10 >= 600:
+            ball_y_direction_original = -ball_y_direction_original
+
+
+        #Bounce off the left wall
+        if wall_left.collision(circle_x,circle_y):
+            ball_x_direction_original = -ball_x_direction_original
+
+
+        #Iteration through the player objects
+        players_remaining = len(players_right)
+        for j,i in enumerate(players_right):
+
+            #Add fitness whenever the player object is an element in players_right
+            ge[j].fitness += 20
+
+            #Neural netouput corresponding to the j-th player object
+            output = nets[j].activate((circle_x,circle_y, ball_x_direction_original, ball_y_direction_original, i.surf.get_rect()[1]))
+
+            #Behaviour depending on the output of the neural network associated with the j-th plater (i.e. associated with i)
+            if output[0] > 0.8:
+                i.move_up()
+                pygame.display.flip()
+
+            elif output[0] < 0.2:
+                i.move_down()
+                pygame.display.flip()
+
+
+            #Determining whether the ball has passed the current player object (the current player object is i, which has index j)
+            if (circle_x + 10 >= 780 and i.rect.top > circle_y + 10) or (circle_x + 10 >= 780 and i.rect.bottom < circle_y - 10):
+                #Before reomval, we reduce fitness of eliminated players
+                ge[j].fitness += 10*abs(1/(circle_y - i.rect.center[1]))
+
+                #We remove the player object i, the associated genome, and the assocaited neural network
+                players_right.pop(j)
+                ge.pop(j)
+                nets.pop(j)
+
+        
+        #If players_right isn't empty, then in the for loop above, at least one of the player objects was such that the ball should bounce
+        if players_right and circle_x + 10 > 780:
+            circle_x = 781
+            ball_x_direction_original = -ball_x_direction_original
 
         circle_x += ball_x_direction_original
         circle_y += ball_y_direction_original
         circle_x = int(circle_x)
         circle_y = int(circle_y)
 
-        #Make the ball bounce off the top of the screen
-        if circle_y - 10 < 0:
-            circle_y = 10
-            ball_y_direction_original = -ball_y_direction_original
-
-
-        #Make the ball bounce off the top of the screen
-        if circle_y + 10 >= 600:
-            ball_y_direction_original = -ball_y_direction_original
-
-
-        if Wall_left.collision(circle_x,circle_y):
-            ball_x_direction_original = -ball_x_direction_original
-
-        for j,i in enumerate(players_right):
-
-            ge[j].fitness += clock.get_time()
-            
-            output = nets[j].activate((circle_x,circle_y, ball_x_direction_original, ball_y_direction_original))
-
-
-            if (circle_x + 10 >= 780 and i.rect.top > circle_y + 10) or (circle_x + 10 >= 780 and i.rect.bottom < circle_y - 10):
-                ge[j].fitness -= 10
-                players_right.pop(j)
-                ge.pop(j)
-                nets.pop(j)
-
-            if output[0] > 1:
-                i.move_up()
-
-            elif output[0] < -1:
-                i.move_down
-
-            elif i.collision(circle_x,circle_y):
-                ball_x_direction_original = -ball_x_direction_original
-
-
-        draw_window(screen, players_right, circle_x, circle_y, Wall_left)
+        draw_window(screen, players_right, circle_x, circle_y, wall_left)
     
 def run(config_file):
     """
