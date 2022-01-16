@@ -26,10 +26,8 @@ from pygame.locals import (
     QUIT,
 )
 
-# Define constants for the screen width and height
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-
 
 # Define a player object by extending pygame.sprite.Sprite
 # The surface drawn on the screen is now an attribute of 'player'
@@ -74,6 +72,7 @@ class Player_right(pygame.sprite.Sprite):
 
         if circle_y - 10 <= self.rect.bottom and circle_y + 10 >= self.rect.top:
             if circle_x + 10 >= 780:
+                circle_x = 780
                 return True
 
 class Wall_left(pygame.sprite.Sprite):
@@ -111,7 +110,8 @@ def draw_window(screen, players, circle_x, circle_y, wall):
 
 # Main loop
 def eval_genomes(genomes, config):
-    global circle_x, circle_y, ball_y_direction_original, ball_x_direction_original, running, wall_left
+
+    global circle_x, circle_y, ball_y_direction_original, ball_x_direction_original, running, wall_left, SCREEN_WIDTH, SCREEN_HEIGHT
     pygame.init()
     running = True
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -126,8 +126,8 @@ def eval_genomes(genomes, config):
     random_int = random.randrange(3)
     r = random.uniform(*ranges[random_int])
     ball_angle = np.pi * 2 * r
-    ball_x_direction_original = 8 * np.cos(ball_angle)
-    ball_y_direction_original = 8 * np.sin(ball_angle)
+    ball_x_direction_original = 20 * np.cos(ball_angle)
+    ball_y_direction_original = 20 * np.sin(ball_angle)
     print(ball_x_direction_original)
 
     if np.sign(ball_x_direction_original) >= 0:
@@ -156,11 +156,11 @@ def eval_genomes(genomes, config):
     circle_x = int(circle_x)
     circle_y = int(circle_y)
     players_right[0].move_up
-    #clock = pygame.time.Clock()
-    draw_window(screen, players_right, circle_x, circle_y, wall_left)
+    clock = pygame.time.Clock()
+    #draw_window(screen, players_right, circle_x, circle_y, wall_left)
     #Make the ball bounce off the left player when appropriate and adjust the score
     while running and len(players_right) > 0:
-        #clock.tick(40)
+        #clock.tick(10)
 
         for event in pygame.event.get():
             # Check for KEYDOWN event
@@ -188,13 +188,27 @@ def eval_genomes(genomes, config):
 
         #Iteration through the player objects
         players_remaining = len(players_right)
+        should_bounce = False
+
         for j,i in enumerate(players_right):
+            print('we are now in the for loop, looking at player number: ', j)
+
 
             #Add fitness whenever the player object is an element in players_right
             ge[j].fitness += 20
 
             #Neural netouput corresponding to the j-th player object
             output = nets[j].activate((circle_x,circle_y, ball_x_direction_original, ball_y_direction_original, i.surf.get_rect()[1]))
+
+            #If the ball should bounce off of ANY of the player objects, we set it to bounce
+            if i.collision(circle_x, circle_y):
+                should_bounce = True
+                # print('The player: ', j, ' has collided')
+                # print('the current ball_x_driection is: ', ball_x_direction_original)
+                # print('The bottom of the rect is: ', i.rect.bottom)
+                # print('The top of the rect is: ', i.rect.top)
+                # print('circle_x: ', circle_x)
+                # print('circle_y: ', circle_y)
 
             #Behaviour depending on the output of the neural network associated with the j-th plater (i.e. associated with i)
             if output[0] > 0.8:
@@ -207,7 +221,7 @@ def eval_genomes(genomes, config):
 
 
             #Determining whether the ball has passed the current player object (the current player object is i, which has index j)
-            if (circle_x + 10 >= 780 and i.rect.top > circle_y + 10) or (circle_x + 10 >= 780 and i.rect.bottom < circle_y - 10):
+            if (circle_x + 10 >= 780 and i.rect.top > circle_y + 10) or (circle_x + 10 >=780 and i.rect.bottom < circle_y - 10):
                 #Before reomval, we reduce fitness of eliminated players
                 ge[j].fitness += 10*abs(1/(circle_y - i.rect.center[1]))
 
@@ -216,12 +230,10 @@ def eval_genomes(genomes, config):
                 ge.pop(j)
                 nets.pop(j)
 
-        
-        #If players_right isn't empty, then in the for loop above, at least one of the player objects was such that the ball should bounce
-        if players_right and circle_x + 10 > 780:
-            circle_x = 781
+        if should_bounce:
             ball_x_direction_original = -ball_x_direction_original
 
+        #If players_right isn't empty, then in the for loop above, at least one of the player objects was such that the ball should bounce
         circle_x += ball_x_direction_original
         circle_y += ball_y_direction_original
         circle_x = int(circle_x)
